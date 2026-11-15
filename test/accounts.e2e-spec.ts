@@ -3,7 +3,7 @@
  *
  * Repo-specific notes that apply to EVERY e2e file:
  * - The global prefix, ValidationPipe and AllExceptionsFilter live in src/main.ts,
- *   NOT in AppModule, so the bootstrap below must replicate them.
+ *   NOT in AppModule, so the bootstrap call configureApp.
  * - BigIntInterceptor comes for free with AppModule (registered via APP_INTERCEPTOR).
  * - Auth: a real user + session row is seeded; AuthGuard accepts the bearer token
  *   through its SHA-256 fallback against the `sessions` table.
@@ -11,15 +11,13 @@
  *   pg handle and refuses to exit.
  */
 import { createHash, randomUUID } from "crypto";
-import { INestApplication, ValidationPipe } from "@nestjs/common";
+import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-// import-require form: the repo's tsconfig has no `esModuleInterop`, so a plain
-// default/namespace import of this CommonJS package is not reliably callable.
-import request = require("supertest");
+import request from "supertest";
 import { AppModule } from "@/app.module";
 import { closeBetterAuthInstance } from "@/auth/auth";
-import { AllExceptionsFilter } from "@/middlewares/errors";
 import { PrismaService } from "@/prisma.service";
+import { configureApp } from "@/app.setup";
 
 jest.setTimeout(30000);
 
@@ -45,21 +43,8 @@ describe("AccountsController (e2e)", () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
-
-    // --- replicate src/main.ts (not part of AppModule) ---
-    app.setGlobalPrefix("api/v1", {
-      exclude: ["api", "api/docs", "api/docs/(.*)", "hello", "ping", "health"],
-    });
-    app.useGlobalPipes(
-      new ValidationPipe({
-        transform: true,
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transformOptions: { enableImplicitConversion: true },
-      }),
-    );
-    app.useGlobalFilters(new AllExceptionsFilter());
-    // -----------------------------------------------------
+    app.useLogger(false);
+    configureApp(app);
     await app.init();
 
     prisma = app.get(PrismaService);

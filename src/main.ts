@@ -1,9 +1,8 @@
-import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { AllExceptionsFilter } from "@/middlewares/errors";
 import { AppModule } from "./app.module";
+import { configureApp } from "./app.setup";
 
 const bootstrap = async () => {
   const app = await NestFactory.create(AppModule, {
@@ -12,23 +11,7 @@ const bootstrap = async () => {
 
   const configService = app.get(ConfigService);
 
-  // RESTful URL versioning / Global Prefix
-  app.setGlobalPrefix("api/v1", {
-    exclude: ["api", "api/docs", "api/docs/(.*)", "hello", "ping", "health"],
-  });
-
-  // Strict ValidationPipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
-
-  // Centralized error filter with logging and Prisma error mapping
-  app.useGlobalFilters(new AllExceptionsFilter());
+  configureApp(app);
 
   // Swagger Documentation
   const swaggerConfig = new DocumentBuilder()
