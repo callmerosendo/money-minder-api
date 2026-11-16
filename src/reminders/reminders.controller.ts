@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, ParseUUIDPipe } from "@nestjs/common";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import type { users } from "@prisma/client";
 import { CreateReminderDto, UpdateReminderDto } from "./reminders.dto";
@@ -19,21 +19,21 @@ export class RemindersController {
   }
 
   @Get(":id")
-  async getReminder(@CurrentUser() user: users, @Param("id") id: string) {
+  async getReminder(@CurrentUser() user: users, @Param("id", ParseUUIDPipe) id: string) {
     return this.remindersService.getReminderById(user.id, id);
   }
 
   @Patch(":id")
   async updateReminder(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() updateReminderDto: UpdateReminderDto,
   ) {
     return this.remindersService.updateReminder(user.id, id, updateReminderDto);
   }
 
   @Delete(":id")
-  async deleteReminder(@CurrentUser() user: users, @Param("id") id: string) {
+  async deleteReminder(@CurrentUser() user: users, @Param("id", ParseUUIDPipe) id: string) {
     return this.remindersService.deleteReminder(user.id, id);
   }
 }

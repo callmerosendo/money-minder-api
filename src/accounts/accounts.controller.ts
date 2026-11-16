@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   ParseBoolPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -50,7 +51,7 @@ export class AccountsController {
   @Get(":id")
   async getAccount(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Query() dto: GetBalanceDto,
   ) {
     return this.accountsService.getAccount(user.id, id, dto.asOf);
@@ -59,7 +60,7 @@ export class AccountsController {
   @Patch(":id")
   async updateAccount(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateAccountDto,
   ) {
     return this.accountsService.updateAccount(user.id, id, dto);
@@ -67,7 +68,7 @@ export class AccountsController {
 
   @Post(":id/archive")
   @ApiOperation({ summary: "Archive an account without deleting its ledger history" })
-  async archiveAccount(@CurrentUser() user: users, @Param("id") id: string) {
+  async archiveAccount(@CurrentUser() user: users, @Param("id", ParseUUIDPipe) id: string) {
     return this.accountsService.archiveAccount(user.id, id);
   }
 
@@ -77,7 +78,7 @@ export class AccountsController {
   })
   async deleteAccount(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Query("hard", new DefaultValuePipe(false), ParseBoolPipe) hard: boolean,
   ) {
     return this.accountsService.deleteAccount(user.id, id, hard);
@@ -87,7 +88,7 @@ export class AccountsController {
   @ApiOperation({ summary: "Account balance at a specific date (defaults to now)" })
   async getBalance(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Query() dto: GetBalanceDto,
   ) {
     return this.accountsService.getAccount(user.id, id, dto.asOf);
@@ -97,7 +98,7 @@ export class AccountsController {
   @ApiOperation({ summary: "Daily historical balances over a date range" })
   async getDailyBalances(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Query() dto: GetBalanceRangeDto,
   ) {
     return this.accountsService.getDailyBalances(user.id, id, dto.from, dto.to);
@@ -107,7 +108,7 @@ export class AccountsController {
   @ApiOperation({ summary: "Account transaction history with running balances" })
   async getHistory(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Query() dto: GetAccountHistoryDto,
   ) {
     return this.accountsService.getHistory(user.id, id, dto);

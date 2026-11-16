@@ -1,3 +1,4 @@
+import { BadRequestException } from "@nestjs/common";
 import { account_type, transaction_type } from "@prisma/client";
 import { dec, MoneyLike, ZERO } from "@/common/money";
 
@@ -34,11 +35,13 @@ export const movementForTransaction = (
       return isLiabilityAccount(accountType) ? value : value.negated();
     case "adjustment":
       if (!direction) {
-        throw new Error("Adjustment transactions require a direction (increase|decrease)");
+        throw new BadRequestException(
+          "Adjustment transactions require a direction (increase|decrease)",
+        );
       }
       return direction === "increase" ? value : value.negated();
     case "transfer":
-      throw new Error("Use movementForTransfer for transfer transactions");
+      throw new BadRequestException("Use movementForTransfer for transfer transactions");
     default:
       return value;
   }
@@ -64,7 +67,7 @@ export const movementForTransfer = (
 
   if (side === "from") {
     if (isLiabilityAccount(accountType)) {
-      throw new Error("Credit card accounts cannot be the source of a transfer");
+      throw new BadRequestException("Credit card accounts cannot be the source of a transfer");
     }
     return principal.plus(transferFee).negated();
   }

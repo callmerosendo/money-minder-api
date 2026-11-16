@@ -56,6 +56,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
           break;
         }
       }
+    } else if (exception instanceof Prisma.PrismaClientValidationError) {
+      // Malformed input reaching Prisma (bad enum/UUID/shape) is a client
+      // error, not an internal one. Log the detail, return a generic 400.
+      this.logger.warn(`Prisma validation error: ${exception.message}`);
+      status = HttpStatus.BAD_REQUEST;
+      message = "Invalid request data";
     } else {
       const err = exception as Error;
       this.logger.error(`Unhandled exception: ${err?.message || exception}`, err?.stack);

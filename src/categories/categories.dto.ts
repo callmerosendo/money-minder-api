@@ -20,3 +20,9 @@ export class UpdateCategoryDto {
   @IsOptional()
   type?: category_type;
 }
+
+export class GetCategoriesDto {
+  @IsEnum(category_type)
+  @IsOptional()
+  type?: category_type;
+}

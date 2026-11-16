@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, ParseUUIDPipe } from "@nestjs/common";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import type { users } from "@prisma/client";
 import { AddPaymentDto, CreateLoanDto, EditLoanDto, EditPaymentDto } from "./loans.dto";
@@ -19,28 +19,28 @@ export class LoansController {
   }
 
   @Get(":loanId")
-  async getLoan(@CurrentUser() user: users, @Param("loanId") loanId: string) {
+  async getLoan(@CurrentUser() user: users, @Param("loanId", ParseUUIDPipe) loanId: string) {
     return this.loansService.getLoanById(user.id, loanId);
   }
 
   @Patch(":loanId")
   async editLoan(
     @CurrentUser() user: users,
-    @Param("loanId") loanId: string,
+    @Param("loanId", ParseUUIDPipe) loanId: string,
     @Body() editLoanDto: EditLoanDto,
   ) {
     return this.loansService.editLoan(user.id, loanId, editLoanDto);
   }
 
   @Delete(":loanId")
-  async deleteLoan(@CurrentUser() user: users, @Param("loanId") loanId: string) {
+  async deleteLoan(@CurrentUser() user: users, @Param("loanId", ParseUUIDPipe) loanId: string) {
     return this.loansService.deleteLoan(user.id, loanId);
   }
 
   @Post(":loanId/payments")
   async addPayment(
     @CurrentUser() user: users,
-    @Param("loanId") loanId: string,
+    @Param("loanId", ParseUUIDPipe) loanId: string,
     @Body() addPaymentDto: AddPaymentDto,
   ) {
     return this.loansService.addPayment(user.id, loanId, addPaymentDto);
@@ -49,8 +49,8 @@ export class LoansController {
   @Patch(":loanId/payments/:paymentId")
   async editPayment(
     @CurrentUser() user: users,
-    @Param("loanId") loanId: string,
-    @Param("paymentId") paymentId: string,
+    @Param("loanId", ParseUUIDPipe) loanId: string,
+    @Param("paymentId", ParseUUIDPipe) paymentId: string,
     @Body() editPaymentDto: EditPaymentDto,
   ) {
     return this.loansService.editPayment(user.id, loanId, paymentId, editPaymentDto);
@@ -59,8 +59,8 @@ export class LoansController {
   @Delete(":loanId/payments/:paymentId")
   async deletePayment(
     @CurrentUser() user: users,
-    @Param("loanId") loanId: string,
-    @Param("paymentId") paymentId: string,
+    @Param("loanId", ParseUUIDPipe) loanId: string,
+    @Param("paymentId", ParseUUIDPipe) paymentId: string,
   ) {
     return this.loansService.deletePayment(user.id, loanId, paymentId);
   }
