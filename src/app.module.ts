@@ -40,7 +40,7 @@ import { HealthModule } from "./health/health.module";
       {
         name: "default",
         ttl: 60 * 1000, // 60 seconds
-        limit: 10, // max requests per ttl
+        limit: 100, // max requests per ttl (per IP) — sized for parallel SPA loads
       },
     ]),
     PrismaModule,
@@ -67,13 +67,16 @@ import { HealthModule } from "./health/health.module";
       provide: APP_INTERCEPTOR,
       useClass: BigIntInterceptor,
     },
-    {
-      provide: APP_GUARD,
-      useClass: AuthGuard,
-    },
+    // Global guards run in registration order. ThrottlerGuard must come first
+    // so rate limiting also applies to requests that fail authentication
+    // (otherwise unauthenticated 401s bypass the limiter entirely).
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
     },
   ],
 })

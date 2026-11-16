@@ -11,8 +11,11 @@ let authPool: Pool | null = null;
  * The SPA runs on a different origin than the API, so every origin the app is
  * served from must be listed here. Otherwise Better Auth rejects the callback
  * URL with `INVALID_CALLBACK_URL`.
+ *
+ * Built lazily on first use so `FRONTEND_URL` from `.env` is visible (the env
+ * file is loaded by ConfigModule after module imports run).
  */
-const trustedOrigins = [
+const buildTrustedOrigins = (): string[] => [
   "http://localhost:4200",
   "http://127.0.0.1:4200",
   "https://money-minder-xi.vercel.app",
@@ -77,7 +80,7 @@ export const getBetterAuthInstance = () => {
     basePath: process.env.BETTER_AUTH_BASE_PATH || "/api/v1/auth",
     secret: requireEnv("BETTER_AUTH_SECRET"),
     database: pool,
-    trustedOrigins,
+    trustedOrigins: buildTrustedOrigins(),
     // Better Auth's tables live in the `neon_auth` schema (managed by Neon),
     // while the application tables live in `public`. Kysely understands
     // schema-qualified table names, so the adapter can target them directly.

@@ -45,19 +45,9 @@ const bootstrap = async () => {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("api/docs", app, document);
 
-  // CORS configuration
-  const defaultCorsOrigins = [
-    "http://localhost:4321",
-    "http://localhost:4200",
-    "http://127.0.0.1:4200",
-    "http://localhost:3000",
-    "https://money-minder-xi.vercel.app",
-    "https://rosendo-garcia.vercel.app",
-  ];
-  const corsOrigins = [
-    ...(configService.get<string[]>("cors.origins") || defaultCorsOrigins),
-    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
-  ];
+  // CORS configuration — origins come from the loaded config (defaults +
+  // FRONTEND_URL + CORS_ORIGINS env override).
+  const corsOrigins = configService.get<string[]>("cors.origins");
 
   app.enableCors({
     origin: corsOrigins,
