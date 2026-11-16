@@ -235,14 +235,14 @@ in §8 where the behavior looks unintentional).
 
 **`GET /hello`** · **`GET /ping`** · **`GET /health`**
 
-- [ ] 200 with no auth: `"Hi there you fantastic person!"` / `"pong 🎾"` / `{ status: "ok" }`
-- [ ] `GET /api/v1/hello` → **404** (proves the prefix exclusion)
+- [x] 200 with no auth: `"Hi there you fantastic person!"` / `"pong 🎾"` / `{ status: "ok" }`
+- [x] `GET /api/v1/hello` → **404** (proves the prefix exclusion)
 
 **`GET /api/v1/phrases/daily-phrase`** (public)
 
-- [ ] 200, body is `null` or `{ phrase, movie, character }` (strings)
-- [ ] Second call same day returns the identical entry (daily index + 24 h cache)
-- [ ] No 401
+- [x] 200, body is `null` or `{ phrase, movie, character }` (strings)
+- [x] Second call same day returns the identical entry (daily index + 24 h cache)
+- [x] No 401
 
 ### 5.2 `test/auth.e2e-spec.ts` — auth (4 endpoints)
 
