@@ -65,12 +65,19 @@ export class TransactionsService {
   }
 
   async list(userId: string, dto: GetTransactionsDto) {
+    // Resolved up front so the same set drives both the SQL filter (correct
+    // totals/pages) and the serialized `reversed` flag on each item.
+    const reversedIds = await this.ledger.findReversedTransactionIds(userId);
+
     const where: Prisma.transactionsWhereInput = {
       user_id: userId,
       ...(dto.type ? { type: dto.type } : {}),
       ...(dto.categoryId ? { category_id: dto.categoryId } : {}),
       ...(dto.accountId
         ? { account_movements: { some: { account_id: dto.accountId, user_id: userId } } }
+        : {}),
+      ...(dto.includeReversed === false && reversedIds.size > 0
+        ? { id: { notIn: [...reversedIds] } }
         : {}),
       ...(dto.from || dto.to
         ? {
@@ -99,13 +106,8 @@ export class TransactionsService {
       this.prisma.transactions.count({ where }),
     ]);
 
-    const reversed =
-      dto.includeReversed === false ? null : await this.ledger.findReversedTransactionIds(userId);
-    const serialized = items.map((transaction) => this.serialize(transaction, reversed));
-
     return {
-      items:
-        dto.includeReversed === false ? serialized.filter((item) => !item.reversed) : serialized,
+      items: items.map((transaction) => this.serialize(transaction, reversedIds)),
       total,
       page: dto.page,
       pageSize: dto.pageSize,
@@ -173,7 +175,7 @@ export class TransactionsService {
           (currentMovement.amount.gt(0) ? "increase" : "decrease");
       }
 
-      let categoryId: string | null | undefined = dto.categoryId as string | null | undefined;
+      let categoryId: string | null | undefined = dto.categoryId;
       if (categoryId === undefined) {
         categoryId = existing.category_id;
       } else if (categoryId !== null) {

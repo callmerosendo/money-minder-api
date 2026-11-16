@@ -1,9 +1,20 @@
-import { ValidationPipe } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { AllExceptionsFilter } from "@/middlewares/errors";
 import { AppModule } from "./app.module";
+import { configureApp } from "./app.setup";
+import { getBetterAuthInstance } from "./auth/auth";
+
+// Safety net for errors outside the request pipeline (see error-use-exception-filters
+// and error-handle-async-errors): log them instead of dying with an opaque stack.
+process.on("unhandledRejection", (reason) => {
+  Logger.error("Unhandled promise rejection", reason instanceof Error ? reason.stack : reason);
+});
+process.on("uncaughtException", (error) => {
+  Logger.error("Uncaught exception", error.stack);
+  process.exit(1);
+});
 
 const bootstrap = async () => {
   const app = await NestFactory.create(AppModule, {
@@ -12,23 +23,15 @@ const bootstrap = async () => {
 
   const configService = app.get(ConfigService);
 
-  // RESTful URL versioning / Global Prefix
-  app.setGlobalPrefix("api/v1", {
-    exclude: ["api", "api/docs", "api/docs/(.*)", "hello", "ping", "health"],
-  });
+  configureApp(app);
 
-  // Strict ValidationPipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
+  // Run OnModuleDestroy hooks (PrismaService, etc.) on SIGTERM/SIGINT so
+  // database pools are closed on deploys instead of leaking connections.
+  app.enableShutdownHooks();
 
-  // Centralized error filter with logging and Prisma error mapping
-  app.useGlobalFilters(new AllExceptionsFilter());
+  // Initialize Better Auth eagerly so a missing/misconfigured BETTER_AUTH_SECRET
+  // fails the boot with a clear error rather than 401-ing every request.
+  getBetterAuthInstance();
 
   // Swagger Documentation
   const swaggerConfig = new DocumentBuilder()
@@ -42,19 +45,9 @@ const bootstrap = async () => {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("api/docs", app, document);
 
-  // CORS configuration
-  const defaultCorsOrigins = [
-    "http://localhost:4321",
-    "http://localhost:4200",
-    "http://127.0.0.1:4200",
-    "http://localhost:3000",
-    "https://money-minder-xi.vercel.app",
-    "https://rosendo-garcia.vercel.app",
-  ];
-  const corsOrigins = [
-    ...(configService.get<string[]>("cors.origins") || defaultCorsOrigins),
-    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
-  ];
+  // CORS configuration — origins come from the loaded config (defaults +
+  // FRONTEND_URL + CORS_ORIGINS env override).
+  const corsOrigins = configService.get<string[]>("cors.origins");
 
   app.enableCors({
     origin: corsOrigins,
@@ -69,4 +62,7 @@ const bootstrap = async () => {
   await app.listen(port);
 };
 
-bootstrap();
+bootstrap().catch((error) => {
+  Logger.error("Failed to start application", error instanceof Error ? error.stack : error);
+  process.exit(1);
+});

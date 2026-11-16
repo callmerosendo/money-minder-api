@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  ParseUUIDPipe,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import type { users } from "@prisma/client";
@@ -31,19 +41,25 @@ export class TransfersController {
   }
 
   @Get(":transactionId")
-  async getById(@CurrentUser() user: users, @Param("transactionId") transactionId: string) {
+  async getById(
+    @CurrentUser() user: users,
+    @Param("transactionId", ParseUUIDPipe) transactionId: string,
+  ) {
     return this.transfersService.getById(user.id, transactionId);
   }
 
   @Get(":transactionId/movements")
-  async getMovements(@CurrentUser() user: users, @Param("transactionId") transactionId: string) {
+  async getMovements(
+    @CurrentUser() user: users,
+    @Param("transactionId", ParseUUIDPipe) transactionId: string,
+  ) {
     return this.transfersService.getMovements(user.id, transactionId);
   }
 
   @Patch(":transactionId")
   async update(
     @CurrentUser() user: users,
-    @Param("transactionId") transactionId: string,
+    @Param("transactionId", ParseUUIDPipe) transactionId: string,
     @Body() dto: UpdateTransferDto,
   ) {
     return this.transfersService.update(user.id, transactionId, dto);
@@ -55,7 +71,7 @@ export class TransfersController {
   })
   async remove(
     @CurrentUser() user: users,
-    @Param("transactionId") transactionId: string,
+    @Param("transactionId", ParseUUIDPipe) transactionId: string,
     @Query() dto: DeleteTransferDto,
   ) {
     return this.transfersService.remove(user.id, transactionId, dto);
@@ -64,7 +80,7 @@ export class TransfersController {
   @Post(":transactionId/reverse")
   async reverse(
     @CurrentUser() user: users,
-    @Param("transactionId") transactionId: string,
+    @Param("transactionId", ParseUUIDPipe) transactionId: string,
     @Body() dto: ReverseTransferDto,
   ) {
     return this.transfersService.reverse(user.id, transactionId, dto);

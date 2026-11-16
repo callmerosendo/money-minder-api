@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, ParseUUIDPipe } from "@nestjs/common";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import type { users } from "@prisma/client";
 import { CreateSavingDto, UpdateSavingDto } from "./savings.dto";
@@ -19,21 +19,21 @@ export class SavingsController {
   }
 
   @Get(":id")
-  async getSaving(@CurrentUser() user: users, @Param("id") id: string) {
+  async getSaving(@CurrentUser() user: users, @Param("id", ParseUUIDPipe) id: string) {
     return this.savingsService.getSavingById(user.id, id);
   }
 
   @Patch(":id")
   async updateSaving(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() updateSavingDto: UpdateSavingDto,
   ) {
     return this.savingsService.updateSaving(user.id, id, updateSavingDto);
   }
 
   @Delete(":id")
-  async deleteSaving(@CurrentUser() user: users, @Param("id") id: string) {
+  async deleteSaving(@CurrentUser() user: users, @Param("id", ParseUUIDPipe) id: string) {
     return this.savingsService.deleteSaving(user.id, id);
   }
 }
