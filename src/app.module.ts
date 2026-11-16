@@ -2,6 +2,7 @@ import { CacheModule } from "@nestjs/cache-manager";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { AccountsModule } from "@/accounts/accounts.module";
 import { AuthGuard } from "@/auth/auth.guard";
 import { AuthModule } from "@/auth/auth.module";
@@ -35,6 +36,13 @@ import { HealthModule } from "./health/health.module";
       max: 200,
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: "default",
+        ttl: 60 * 1000, // 60 seconds
+        limit: 10, // max requests per ttl
+      },
+    ]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -62,6 +70,10 @@ import { HealthModule } from "./health/health.module";
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

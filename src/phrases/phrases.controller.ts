@@ -1,6 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
 import { Public } from "@/common/decorators/public.decorator";
 import { PhrasesService } from "./phrases.service";
+import { SkipThrottle } from "@nestjs/throttler";
 
 @Controller("phrases")
 export class PhrasesController {
@@ -8,6 +9,7 @@ export class PhrasesController {
 
   @Public()
   @Get("daily-phrase")
+  @SkipThrottle()
   async getPhrases() {
     return this.phrasesService.getDailyPhrase();
   }
