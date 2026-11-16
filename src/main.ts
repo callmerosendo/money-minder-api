@@ -1,8 +1,20 @@
+import { Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 import { configureApp } from "./app.setup";
+import { getBetterAuthInstance } from "./auth/auth";
+
+// Safety net for errors outside the request pipeline (see error-use-exception-filters
+// and error-handle-async-errors): log them instead of dying with an opaque stack.
+process.on("unhandledRejection", (reason) => {
+  Logger.error("Unhandled promise rejection", reason instanceof Error ? reason.stack : reason);
+});
+process.on("uncaughtException", (error) => {
+  Logger.error("Uncaught exception", error.stack);
+  process.exit(1);
+});
 
 const bootstrap = async () => {
   const app = await NestFactory.create(AppModule, {
@@ -12,6 +24,14 @@ const bootstrap = async () => {
   const configService = app.get(ConfigService);
 
   configureApp(app);
+
+  // Run OnModuleDestroy hooks (PrismaService, etc.) on SIGTERM/SIGINT so
+  // database pools are closed on deploys instead of leaking connections.
+  app.enableShutdownHooks();
+
+  // Initialize Better Auth eagerly so a missing/misconfigured BETTER_AUTH_SECRET
+  // fails the boot with a clear error rather than 401-ing every request.
+  getBetterAuthInstance();
 
   // Swagger Documentation
   const swaggerConfig = new DocumentBuilder()
@@ -52,4 +72,7 @@ const bootstrap = async () => {
   await app.listen(port);
 };
 
-bootstrap();
+bootstrap().catch((error) => {
+  Logger.error("Failed to start application", error instanceof Error ? error.stack : error);
+  process.exit(1);
+});

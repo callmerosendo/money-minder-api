@@ -21,6 +21,42 @@ export class SpecialsService {
     });
   }
 
+  /**
+   * Slimmed-down year summary for the legacy dashboard. The mapping from the
+   * full report shape lives here (not in the controller) so response assembly
+   * stays with the service that owns it.
+   */
+  async getFinancialSummaryYearly(userId: string, year: number) {
+    const report = await this.reports.getYearlyReport(userId, {
+      year,
+      includeTransferFees: true,
+    });
+
+    return {
+      year,
+      totalEntries: report.summary.income,
+      totalExits: report.summary.expensesIncludingTransferFees,
+      netBalance: report.summary.net,
+    };
+  }
+
+  /** Monthly counterpart of {@link getFinancialSummaryYearly}. */
+  async getFinancialSummaryMonthly(userId: string, month: number, year: number) {
+    const report = await this.reports.getMonthlyReport(userId, {
+      month,
+      year,
+      includeTransferFees: true,
+    });
+
+    return {
+      month,
+      year,
+      totalEntries: report.summary.income,
+      totalExits: report.summary.expensesIncludingTransferFees,
+      netBalance: report.summary.net,
+    };
+  }
+
   async getCategories(userId: string, year: number) {
     const from = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
     const to = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));

@@ -210,7 +210,9 @@ describe("AccountsController (e2e)", () => {
         .set(authHeader)
         .expect(400);
 
-      expect(res.body).toMatchObject({ statusCode: 400, message: "Database operation failed" });
+      // Rejected by ParseUUIDPipe before the request ever reaches Prisma.
+      expect(res.body.statusCode).toBe(400);
+      expect(res.body.message).toContain("uuid");
     });
   });
 

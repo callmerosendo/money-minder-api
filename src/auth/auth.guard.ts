@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { createHash } from "crypto";
 import { Reflector } from "@nestjs/core";
 import { fromNodeHeaders } from "better-auth/node";
@@ -8,6 +14,8 @@ import { getBetterAuthInstance } from "./auth";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly logger = new Logger(AuthGuard.name);
+
   constructor(
     private readonly reflector: Reflector,
     private readonly prisma: PrismaService,
@@ -57,8 +65,15 @@ export class AuthGuard implements CanActivate {
         request.session = session.session;
         return true;
       }
-    } catch {
-      // Better auth session lookup failed or threw, fall through to direct token check
+    } catch (error) {
+      // Better auth session lookup failed or threw, fall through to direct
+      // token check. Logged so real failures (e.g. a DB outage, a missing
+      // BETTER_AUTH_SECRET) are distinguishable from "no session" in the logs.
+      this.logger.warn(
+        `Better auth session lookup failed, falling back to bearer token: ${
+          error instanceof Error ? error.message : error
+        }`,
+      );
     }
 
     // 2. Fall back to the application sessions table. The table stores a hash of

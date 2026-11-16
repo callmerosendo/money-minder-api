@@ -1,4 +1,4 @@
-import { Transform, Type } from "class-transformer";
+import { Transform } from "class-transformer";
 import {
   IsBoolean,
   IsDateString,
@@ -69,9 +69,13 @@ export class UpdateTransactionDto {
   @IsOptional()
   accountId?: string;
 
+  /**
+   * UUID of the category to attach, or `null` to clear it. Omit to keep the
+   * current value.
+   */
   @IsUUID()
   @IsOptional()
-  categoryId?: string;
+  categoryId?: string | null;
 
   @IsString()
   @IsOptional()
@@ -129,10 +133,4 @@ export class DeleteTransactionDto {
   @IsBoolean()
   @IsOptional()
   hard?: boolean = false;
-}
-
-export class GetTransactionQueryDto {
-  @Type(() => Boolean)
-  @IsOptional()
-  includeMovements?: boolean = true;
 }

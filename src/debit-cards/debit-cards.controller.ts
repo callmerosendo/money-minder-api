@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  ParseUUIDPipe,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import type { users } from "@prisma/client";
@@ -22,21 +32,21 @@ export class DebitCardsController {
   }
 
   @Get(":id")
-  async getById(@CurrentUser() user: users, @Param("id") id: string) {
+  async getById(@CurrentUser() user: users, @Param("id", ParseUUIDPipe) id: string) {
     return this.debitCardsService.getById(user.id, id);
   }
 
   @Patch(":id")
   async update(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateDebitCardDto,
   ) {
     return this.debitCardsService.update(user.id, id, dto);
   }
 
   @Delete(":id")
-  async remove(@CurrentUser() user: users, @Param("id") id: string) {
+  async remove(@CurrentUser() user: users, @Param("id", ParseUUIDPipe) id: string) {
     return this.debitCardsService.remove(user.id, id);
   }
 }

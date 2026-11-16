@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  ParseUUIDPipe,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import type { users } from "@prisma/client";
@@ -30,13 +40,13 @@ export class TransactionsController {
   }
 
   @Get(":id")
-  async getById(@CurrentUser() user: users, @Param("id") id: string) {
+  async getById(@CurrentUser() user: users, @Param("id", ParseUUIDPipe) id: string) {
     return this.transactionsService.getById(user.id, id);
   }
 
   @Get(":id/movements")
   @ApiOperation({ summary: "Account movements attached to a transaction" })
-  async getMovements(@CurrentUser() user: users, @Param("id") id: string) {
+  async getMovements(@CurrentUser() user: users, @Param("id", ParseUUIDPipe) id: string) {
     const transaction = await this.transactionsService.getById(user.id, id);
     return transaction.movements;
   }
@@ -45,7 +55,7 @@ export class TransactionsController {
   @ApiOperation({ summary: "Correct a transaction (recalculates its movements atomically)" })
   async update(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateTransactionDto,
   ) {
     return this.transactionsService.update(user.id, id, dto);
@@ -57,7 +67,7 @@ export class TransactionsController {
   })
   async remove(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Query() dto: DeleteTransactionDto,
   ) {
     return this.transactionsService.remove(user.id, id, dto);
@@ -67,7 +77,7 @@ export class TransactionsController {
   @ApiOperation({ summary: "Create a compensating reversal transaction" })
   async reverse(
     @CurrentUser() user: users,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: ReverseTransactionDto,
   ) {
     return this.transactionsService.reverse(user.id, id, dto);

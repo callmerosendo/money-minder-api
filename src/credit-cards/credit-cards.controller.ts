@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  ParseUUIDPipe,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
@@ -45,25 +46,31 @@ export class CreditCardsController {
   }
 
   @Get(":accountId")
-  async getById(@CurrentUser() user: users, @Param("accountId") accountId: string) {
+  async getById(@CurrentUser() user: users, @Param("accountId", ParseUUIDPipe) accountId: string) {
     return this.creditCardsService.getById(user.id, accountId);
   }
 
   @Get(":accountId/summary")
   @ApiOperation({ summary: "Credit limit, outstanding debt and available credit" })
-  async getSummary(@CurrentUser() user: users, @Param("accountId") accountId: string) {
+  async getSummary(
+    @CurrentUser() user: users,
+    @Param("accountId", ParseUUIDPipe) accountId: string,
+  ) {
     return this.creditCardsService.getById(user.id, accountId);
   }
 
   @Get(":accountId/purchases")
-  async getPurchases(@CurrentUser() user: users, @Param("accountId") accountId: string) {
+  async getPurchases(
+    @CurrentUser() user: users,
+    @Param("accountId", ParseUUIDPipe) accountId: string,
+  ) {
     return this.creditCardsService.getPurchasesRange(user.id, accountId);
   }
 
   @Patch(":accountId")
   async update(
     @CurrentUser() user: users,
-    @Param("accountId") accountId: string,
+    @Param("accountId", ParseUUIDPipe) accountId: string,
     @Body() dto: UpdateCreditCardDto,
   ) {
     return this.creditCardsService.update(user.id, accountId, dto);
@@ -73,7 +80,7 @@ export class CreditCardsController {
   @ApiOperation({ summary: "Pay a credit card from one of the user's asset accounts" })
   async pay(
     @CurrentUser() user: users,
-    @Param("accountId") accountId: string,
+    @Param("accountId", ParseUUIDPipe) accountId: string,
     @Body() dto: CreditCardPaymentDto,
   ) {
     return this.creditCardsService.pay(user.id, accountId, dto);
@@ -83,7 +90,7 @@ export class CreditCardsController {
   @ApiOperation({ summary: "Archive a credit card; hard delete only with ?hard=true" })
   async remove(
     @CurrentUser() user: users,
-    @Param("accountId") accountId: string,
+    @Param("accountId", ParseUUIDPipe) accountId: string,
     @Query("hard", new DefaultValuePipe(false), ParseBoolPipe) hard: boolean,
   ) {
     return this.creditCardsService.remove(user.id, accountId, hard);
