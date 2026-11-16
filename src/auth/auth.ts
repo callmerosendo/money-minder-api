@@ -1,8 +1,14 @@
 import { betterAuth } from "better-auth";
-import { bearer } from "better-auth/plugins";
+import { bearer } from "better-auth/plugins/bearer";
 import { Pool } from "pg";
 
-let authInstance: any = null;
+/**
+ * Inferred from the factory so every `auth.api.*` call site keeps full type
+ * information instead of degrading to `any`.
+ */
+type AuthInstance = ReturnType<typeof createBetterAuth>;
+
+let authInstance: AuthInstance | null = null;
 let authPool: Pool | null = null;
 
 /**
@@ -27,12 +33,20 @@ const buildTrustedOrigins = (): string[] => [
  * Fails fast when a required environment variable is missing instead of
  * silently falling back to an insecure default. Read lazily (on first use)
  * rather than at module load so ConfigModule has already loaded `.env`.
+ *
+ * `minLength` enforces Better Auth's requirements (e.g. the secret must be at
+ * least 32 characters) so a weak value is caught at boot, not in production.
  */
-const requireEnv = (name: string): string => {
+const requireEnv = (name: string, minLength = 1): string => {
   const value = process.env[name];
   if (!value) {
     throw new Error(
       `Missing required environment variable "${name}". Set it in .env before starting the app.`,
+    );
+  }
+  if (value.length < minLength) {
+    throw new Error(
+      `Environment variable "${name}" must be at least ${minLength} characters (got ${value.length}).`,
     );
   }
   return value;
@@ -65,20 +79,23 @@ const buildSocialProviders = (): Record<string, { clientId: string; clientSecret
   return providers;
 };
 
-export const getBetterAuthInstance = () => {
-  if (authInstance) return authInstance;
-
+const createBetterAuth = () => {
   const connectionString = process.env.DATABASE_URL;
   const pool = new Pool({ connectionString });
   authPool = pool;
 
-  const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:7373";
+  // In production a missing BETTER_AUTH_URL would silently point OAuth
+  // callbacks at localhost, so fail fast there. Dev keeps the local fallback.
+  const baseURL =
+    process.env.NODE_ENV === "production"
+      ? requireEnv("BETTER_AUTH_URL")
+      : process.env.BETTER_AUTH_URL || "http://localhost:7373";
   const isSecure = baseURL.startsWith("https://");
 
-  authInstance = betterAuth({
+  return betterAuth({
     baseURL,
     basePath: process.env.BETTER_AUTH_BASE_PATH || "/api/v1/auth",
-    secret: requireEnv("BETTER_AUTH_SECRET"),
+    secret: requireEnv("BETTER_AUTH_SECRET", 32),
     database: pool,
     trustedOrigins: buildTrustedOrigins(),
     // Better Auth's tables live in the `neon_auth` schema (managed by Neon),
@@ -101,9 +118,24 @@ export const getBetterAuthInstance = () => {
       // The SPA and the API are cross-site in production, so the session
       // cookie must be sent with SameSite=None; Secure.
       ...(isSecure ? { defaultCookieAttributes: { sameSite: "none" as const, secure: true } } : {}),
+      ipAddress: {
+        // Render proxies through Cloudflare, which overwrites these headers
+        // with the real client IP — they cannot be spoofed by the client.
+        // X-Forwarded-For is only a last-resort fallback: Render appends to
+        // it without stripping client-supplied values, and Better Auth trusts
+        // it only when it carries a single entry. Without this, production
+        // requests collapse into one shared rate-limit bucket per path.
+        ipAddressHeaders: ["cf-connecting-ip", "true-client-ip", "x-forwarded-for"],
+      },
     },
     plugins: [bearer()],
   });
+};
+
+export const getBetterAuthInstance = () => {
+  if (authInstance) return authInstance;
+
+  authInstance = createBetterAuth();
 
   return authInstance;
 };

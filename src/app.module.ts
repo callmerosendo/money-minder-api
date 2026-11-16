@@ -36,13 +36,25 @@ import { HealthModule } from "./health/health.module";
       max: 200,
       isGlobal: true,
     }),
-    ThrottlerModule.forRoot([
-      {
-        name: "default",
-        ttl: 60 * 1000, // 60 seconds
-        limit: 100, // max requests per ttl (per IP) — sized for parallel SPA loads
+    ThrottlerModule.forRoot({
+      // Prefer the Cloudflare-set client IP headers (Render proxies through
+      // Cloudflare, which overwrites them — clients can't spoof them).
+      // X-Forwarded-For is spoofable on Render (it appends without stripping),
+      // so fall back to req.ip only when the trusted headers are absent
+      // (i.e. local development, where trust proxy resolves it).
+      getTracker: (req: Record<string, any>) => {
+        const forwarded = req.headers?.["cf-connecting-ip"] ?? req.headers?.["true-client-ip"];
+        if (typeof forwarded === "string" && forwarded.length > 0) return forwarded;
+        return (req.ip ?? req.socket?.remoteAddress ?? "unknown") as string;
       },
-    ]),
+      throttlers: [
+        {
+          name: "default",
+          ttl: 60 * 1000, // 60 seconds
+          limit: 100, // max requests per ttl (per IP) — sized for parallel SPA loads
+        },
+      ],
+    }),
     PrismaModule,
     AuthModule,
     UsersModule,

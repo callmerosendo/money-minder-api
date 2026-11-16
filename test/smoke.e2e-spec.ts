@@ -51,6 +51,15 @@ describe("PublicEndpoints (e2e)", () => {
     });
   });
 
+  describe("GET /api/v1/auth/ok", () => {
+    it("verifies the Better Auth handler is reachable (skill: setup verification)", async () => {
+      const res = await request(app.getHttpServer()).get("/api/v1/auth/ok").expect(200);
+
+      // better-auth 1.7.18 responds `{ ok: true }` from the /ok route.
+      expect(res.body).toMatchObject({ ok: true });
+    });
+  });
+
   describe("GET /api/v1/phrases/daily-phrase", () => {
     it("is public (no auth header) and returns a well-formed entry", async () => {
       const res = await request(app.getHttpServer())
